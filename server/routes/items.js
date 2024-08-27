@@ -2,15 +2,11 @@ const express = require('express');
 const router = express.Router();
 
 router.get('/', (req, res) => {
-  res.send('Get all items');
+  res.status(200).json({ message: 'Fetch all items' });
 });
 
 router.get('/:id', (req, res) => {
-  res.send(`Get item with ID ${req.params.id}`);
-});
-
-router.post('/', (req, res) => {
-  res.send('Create a new item');
+  res.status(200).json({ message: `Fetch item with id ${req.params.id}` });
 });
 
 module.exports = router;

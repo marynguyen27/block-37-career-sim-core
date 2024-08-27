@@ -4,11 +4,37 @@
 // Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
 generator client {
   provider = "prisma-client-js"
 }
 
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+model User {
+  id       Int     @id @default(autoincrement())
+  username String  @unique
+  password String
+  reviews  Review[]
+}
+
+model Item {
+  id       Int     @id @default(autoincrement())
+  name     String
+  type     String
+  reviews  Review[]
+}
+
+model Review {
+  id       Int     @id @default(autoincrement())
+  text     String
+  rating   Int
+  itemId   Int
+  userId   Int
+  item     Item    @relation(fields: [itemId], references: [id])
+  user     User    @relation(fields: [userId], references: [id])
+
+  @@unique([itemId, userId]) // Ensure only one review per item per user
 }

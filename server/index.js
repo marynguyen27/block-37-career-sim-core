@@ -6,7 +6,56 @@ const prisma = new PrismaClient();
 
 app.use(express.json());
 
-// Placeholder Route for User
+// Seeding Data
+async function main() {
+  // Seed Users
+  const users = await Promise.all(
+    Array.from({ length: 20 }).map((_, i) =>
+      prisma.user.create({
+        data: {
+          email: `user${i}@example.com`,
+        },
+      })
+    )
+  );
+
+  // Seed Items
+  const items = await Promise.all(
+    Array.from({ length: 75 }).map((_, i) =>
+      prisma.item.create({
+        data: {
+          name: `Item ${i + 1}`,
+        },
+      })
+    )
+  );
+
+  // Seed Reviews
+  await Promise.all(
+    Array.from({ length: 200 }).map((_, i) =>
+      prisma.review.create({
+        data: {
+          text: `This is review number ${i + 1}`,
+          rating: Math.floor(Math.random() * 5) + 1, // Random rating between 1 and 5
+          userId: users[Math.floor(Math.random() * users.length)].id,
+          itemId: items[Math.floor(Math.random() * items.length)].id,
+        },
+      })
+    )
+  );
+
+  console.log('Seeding completed!');
+}
+
+main()
+  .catch((e) => {
+    throw e;
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
+
+// Placeholder User
 app.post('/users', async (req, res) => {
   const { email } = req.body;
   try {
@@ -31,7 +80,7 @@ app.get('/users/:id', async (req, res) => {
   }
 });
 
-// Placeholder Route for Items
+// Placeholder Items
 app.post('/items', async (req, res) => {
   const { name } = req.body;
   try {
@@ -56,7 +105,7 @@ app.get('/items/:id', async (req, res) => {
   }
 });
 
-// Placeholder Route for Reviews
+// Placeholder Reviews
 app.post('/reviews', async (req, res) => {
   const { text, rating, userId, itemId } = req.body;
   try {
@@ -81,7 +130,7 @@ app.get('/reviews/:id', async (req, res) => {
   }
 });
 
-// Placeholder Route for Comments
+// Placeholder Comments
 app.post('/comments', async (req, res) => {
   const { text, reviewId, userId } = req.body;
   try {

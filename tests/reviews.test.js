@@ -1,109 +1,100 @@
-pm.test('Status code is 201', function () {
+pm.test('201 for review creation', function () {
   pm.response.to.have.status(201);
 });
 
-pm.test('Response contains review ID', function () {
+pm.test('review ID', function () {
   var jsonData = pm.response.json();
   pm.expect(jsonData).to.have.property('id');
 });
 
-pm.test('Review text matches input', function () {
+pm.test('review text matches input', function () {
   var jsonData = pm.response.json();
-  pm.expect(jsonData.text).to.eql('This is a sample review');
+  pm.expect(jsonData.text).to.eql('sample review');
 });
 
-pm.test('Status code is 200', function () {
+pm.test('200 fetching reviews', function () {
   pm.response.to.have.status(200);
 });
 
-pm.test('Response is an array', function () {
+pm.test('array of reviews', function () {
   var jsonData = pm.response.json();
   pm.expect(jsonData).to.be.an('array');
 });
 
-pm.test('Response array is not empty', function () {
+pm.test('array isnt empty', function () {
   var jsonData = pm.response.json();
   pm.expect(jsonData.length).to.be.above(0);
 });
 
-pm.test('Status code is 200', function () {
+pm.test('200 updating a review', function () {
   pm.response.to.have.status(200);
 });
 
-pm.test('Review text is updated', function () {
+pm.test('review text matches', function () {
   var jsonData = pm.response.json();
   pm.expect(jsonData.text).to.eql('Updated review text');
 });
 
-pm.test('Status code is 204', function () {
+pm.test('204 review deletion', function () {
   pm.response.to.have.status(204);
 });
 
-pm.test('Status code is 409 for duplicate review', function () {
+pm.test('409 duplicate review', function () {
   pm.response.to.have.status(409);
 });
 
-pm.test(
-  'Response contains appropriate error message for duplicate review',
-  function () {
-    var jsonData = pm.response.json();
-    pm.expect(jsonData.error).to.eql('User has already reviewed this item');
-  }
-);
+pm.test('error duplicate review', function () {
+  var jsonData = pm.response.json();
+  pm.expect(jsonData.error).to.eql('User has already reviewed this item');
+});
 
-pm.test('Status code is 200 for user reviews list', function () {
+pm.test('200 fetching user reviews', function () {
   pm.response.to.have.status(200);
 });
 
-pm.test('Response contains reviews written by the user', function () {
+pm.test('reviews written by the user', function () {
   var jsonData = pm.response.json();
   pm.expect(jsonData).to.be.an('array');
   pm.expect(jsonData.length).to.be.above(0);
   pm.expect(jsonData[0]).to.have.property('text');
 });
 
-pm.test('Status code is 204 for review deletion', function () {
+pm.test('204 review deletion', function () {
   pm.response.to.have.status(204);
 });
 
-pm.test('Status code is 200 for review update', function () {
+pm.test('200 review update', function () {
   pm.response.to.have.status(200);
 });
 
-pm.test('Updated review text is correct', function () {
+pm.test('review text is correct', function () {
   var jsonData = pm.response.json();
   pm.expect(jsonData.text).to.eql('Updated review text');
 });
 
-pm.test('Status code is 404 for non-existent review ID', function () {
+pm.test('404 non-existent review ID', function () {
   pm.response.to.have.status(404);
 });
 
-pm.test('Response contains appropriate error message', function () {
+pm.test('error message for non-existent review', function () {
   var jsonData = pm.response.json();
   pm.expect(jsonData.error).to.eql('Review not found');
 });
 
-pm.test('Status code is 400 for missing review text', function () {
+pm.test('400 missing review text', function () {
   pm.response.to.have.status(400);
 });
 
-pm.test(
-  'Response contains appropriate error message for missing text',
-  function () {
-    var jsonData = pm.response.json();
-    pm.expect(jsonData.error).to.include('Review text is required');
-  }
-);
+pm.test('missing review text', function () {
+  var jsonData = pm.response.json();
+  pm.expect(jsonData.error).to.include('Review text is required');
+});
 
-pm.test('Status code is 400 for invalid rating', function () {
+pm.test('invalid rating', function () {
   pm.response.to.have.status(400);
 });
 
-pm.test(
-  'Response contains appropriate error message for invalid rating',
-  function () {
-    var jsonData = pm.response.json();
-    pm.expect(jsonData.error).to.include('Invalid rating');
-  }
-);
+pm.test('error message for invalid rating', function () {
+  var jsonData = pm.response.json();
+  pm.expect(jsonData.error).to.include('Invalid rating');
+});

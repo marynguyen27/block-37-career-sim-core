@@ -1,139 +1,136 @@
 const express = require('express');
 const router = express.Router();
-const prisma = require('../prisma');
+const { Client } = require('pg');
 const { checkAuth } = require('../middleware/auth');
 
-// new review
+const client = new Client({
+  user: 'postgres',
+  host: 'localhost',
+  database: 'block37',
+  password: '12345677',
+  port: 5432,
+});
+
+client.connect().catch((err) => {
+  console.error('Error connecting to the database', err);
+});
+
 router.post('/', checkAuth, async (req, res) => {
+  const { itemId, rating, text } = req.body;
+  const userId = req.user.id;
   try {
-    const { itemId, rating, text } = req.body;
+    const existingReview = await client.query(
+      'SELECT * FROM reviews WHERE item_id = $1 AND user_id = $2',
+      [itemId, userId]
+    );
 
-    // user can only leave one review per item
-    const existingReview = await prisma.review.findFirst({
-      where: {
-        itemId,
-        userId: req.user.id,
-      },
-    });
-
-    if (existingReview) {
+    if (existingReview.rows.length > 0) {
       return res
         .status(400)
-        .json({ error: 'You have already reviewed this item' });
+        .json({
+          error: 'You have already reviewed this item! One review per item!',
+        });
     }
 
-    // new review
-    const newReview = await prisma.review.create({
-      data: {
-        itemId,
-        userId: req.user.id,
-        rating,
-        text,
-      },
-    });
+    const result = await client.query(
+      'INSERT INTO reviews (item_id, user_id, rating, text) VALUES ($1, $2, $3, $4) RETURNING *',
+      [itemId, userId, rating, text]
+    );
 
-    res.status(201).json(newReview);
+    res.status(201).json(result.rows[0]);
   } catch (error) {
+    console.error('Failed to create review', error);
     res.status(500).json({ error: 'Failed to create review' });
   }
 });
 
-// all reviews for an item
 router.get('/item/:itemId', async (req, res) => {
+  const { itemId } = req.params;
   try {
-    const { itemId } = req.params;
-
-    const reviews = await prisma.review.findMany({
-      where: { itemId: parseInt(itemId) },
-      include: {
-        user: {
-          select: { name: true },
-        },
-      },
-    });
-
-    res.status(200).json(reviews);
+    const result = await client.query(
+      'SELECT reviews.*, users.name FROM reviews JOIN users ON reviews.user_id = users.id WHERE item_id = $1',
+      [parseInt(itemId, 10)]
+    );
+    res.status(200).json(result.rows);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch reviews for the item' });
+    console.error('Error fetching reviews', error);
+    res.status(500).json({ error: 'Error fetching reviews' });
   }
 });
 
-// single review
 router.get('/:reviewId', async (req, res) => {
+  const { reviewId } = req.params;
   try {
-    const { reviewId } = req.params;
+    const result = await client.query(
+      'SELECT reviews.*, users.name FROM reviews JOIN users ON reviews.user_id = users.id WHERE reviews.id = $1',
+      [parseInt(reviewId, 10)]
+    );
 
-    const review = await prisma.review.findUnique({
-      where: { id: parseInt(reviewId) },
-      include: {
-        user: {
-          select: { name: true },
-        },
-      },
-    });
-
-    if (!review) {
+    if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Review not found' });
     }
 
-    res.status(200).json(review);
+    res.status(200).json(result.rows[0]);
   } catch (error) {
+    console.error('Failed to fetch the review', error);
     res.status(500).json({ error: 'Failed to fetch the review' });
   }
 });
 
-// update a review
 router.put('/:reviewId', checkAuth, async (req, res) => {
+  const { reviewId } = req.params;
+  const { rating, text } = req.body;
+  const userId = req.user.id;
   try {
-    const { reviewId } = req.params;
-    const { rating, text } = req.body;
+    const reviewResult = await client.query(
+      'SELECT * FROM reviews WHERE id = $1',
+      [parseInt(reviewId, 10)]
+    );
 
-    // Find the review and ensure it belongs to the authenticated user
-    const review = await prisma.review.findUnique({
-      where: { id: parseInt(reviewId) },
-    });
-
-    if (!review || review.userId !== req.user.id) {
+    if (
+      reviewResult.rows.length === 0 ||
+      reviewResult.rows[0].user_id !== userId
+    ) {
       return res
         .status(404)
         .json({ error: 'Review not found or unauthorized' });
     }
 
-    // update the review
-    const updatedReview = await prisma.review.update({
-      where: { id: parseInt(reviewId) },
-      data: { rating, text },
-    });
+    const result = await client.query(
+      'UPDATE reviews SET rating = $1, text = $2 WHERE id = $3 RETURNING *',
+      [rating, text, parseInt(reviewId, 10)]
+    );
 
-    res.status(200).json(updatedReview);
+    res.status(200).json(result.rows[0]);
   } catch (error) {
+    console.error('Failed to update review', error);
     res.status(500).json({ error: 'Failed to update review' });
   }
 });
 
-// delete a review
 router.delete('/:reviewId', checkAuth, async (req, res) => {
+  const { reviewId } = req.params;
+  const userId = req.user.id;
   try {
-    const { reviewId } = req.params;
+    const reviewResult = await client.query(
+      'SELECT * FROM reviews WHERE id = $1',
+      [parseInt(reviewId, 10)]
+    );
 
-    // find the review and ensure it belongs to the authenticated user
-    const review = await prisma.review.findUnique({
-      where: { id: parseInt(reviewId) },
-    });
-
-    if (!review || review.userId !== req.user.id) {
-      return res
-        .status(404)
-        .json({ error: 'Review not found or unauthorized' });
+    if (
+      reviewResult.rows.length === 0 ||
+      reviewResult.rows[0].user_id !== userId
+    ) {
+      return res.status(404).json({ error: 'Review not found or not allowed' });
     }
 
-    // delete the review
-    await prisma.review.delete({
-      where: { id: parseInt(reviewId) },
-    });
+    await client.query('DELETE FROM reviews WHERE id = $1', [
+      parseInt(reviewId, 10),
+    ]);
 
     res.status(204).send();
   } catch (error) {
+    console.error('Failed to delete review', error);
     res.status(500).json({ error: 'Failed to delete review' });
   }
 });

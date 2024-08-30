@@ -1,27 +1,21 @@
 const express = require('express');
+const { connectDB, client } = require('./db');
 const app = express();
 const port = process.env.PORT || 3000;
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
 
 app.use(express.json());
 
-main()
-  .catch((e) => {
-    throw e;
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+connectDB();
 
-// Placeholder User
+// Users
 app.post('/users', async (req, res) => {
   const { email } = req.body;
   try {
-    const user = await prisma.user.create({
-      data: { email },
-    });
-    res.status(201).json(user);
+    const result = await client.query(
+      'INSERT INTO users (email) VALUES ($1) RETURNING *',
+      [email]
+    );
+    res.status(201).json(result.rows[0]);
   } catch (error) {
     res.status(400).json({ error: 'Unable to create user' });
   }
@@ -30,23 +24,28 @@ app.post('/users', async (req, res) => {
 app.get('/users/:id', async (req, res) => {
   const { id } = req.params;
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: parseInt(id) },
-    });
-    res.status(200).json(user);
+    const result = await client.query('SELECT * FROM users WHERE id = $1', [
+      id,
+    ]);
+    if (result.rows.length > 0) {
+      res.status(200).json(result.rows[0]);
+    } else {
+      res.status(404).json({ error: 'User not found' });
+    }
   } catch (error) {
-    res.status(404).json({ error: 'User not found' });
+    res.status(500).json({ error: 'Database query failed' });
   }
 });
 
-// Placeholder Items
+// Items
 app.post('/items', async (req, res) => {
   const { name } = req.body;
   try {
-    const item = await prisma.item.create({
-      data: { name },
-    });
-    res.status(201).json(item);
+    const result = await client.query(
+      'INSERT INTO items (name) VALUES ($1) RETURNING *',
+      [name]
+    );
+    res.status(201).json(result.rows[0]);
   } catch (error) {
     res.status(400).json({ error: 'Unable to create item' });
   }
@@ -55,23 +54,28 @@ app.post('/items', async (req, res) => {
 app.get('/items/:id', async (req, res) => {
   const { id } = req.params;
   try {
-    const item = await prisma.item.findUnique({
-      where: { id: parseInt(id) },
-    });
-    res.status(200).json(item);
+    const result = await client.query('SELECT * FROM items WHERE id = $1', [
+      id,
+    ]);
+    if (result.rows.length > 0) {
+      res.status(200).json(result.rows[0]);
+    } else {
+      res.status(404).json({ error: 'Item not found' });
+    }
   } catch (error) {
-    res.status(404).json({ error: 'Item not found' });
+    res.status(500).json({ error: 'Database query failed' });
   }
 });
 
-// Placeholder Reviews
+// Reviews
 app.post('/reviews', async (req, res) => {
   const { text, rating, userId, itemId } = req.body;
   try {
-    const review = await prisma.review.create({
-      data: { text, rating, userId, itemId },
-    });
-    res.status(201).json(review);
+    const result = await client.query(
+      'INSERT INTO reviews (text, rating, user_id, item_id) VALUES ($1, $2, $3, $4) RETURNING *',
+      [text, rating, userId, itemId]
+    );
+    res.status(201).json(result.rows[0]);
   } catch (error) {
     res.status(400).json({ error: 'Unable to create review' });
   }
@@ -80,23 +84,28 @@ app.post('/reviews', async (req, res) => {
 app.get('/reviews/:id', async (req, res) => {
   const { id } = req.params;
   try {
-    const review = await prisma.review.findUnique({
-      where: { id: parseInt(id) },
-    });
-    res.status(200).json(review);
+    const result = await client.query('SELECT * FROM reviews WHERE id = $1', [
+      id,
+    ]);
+    if (result.rows.length > 0) {
+      res.status(200).json(result.rows[0]);
+    } else {
+      res.status(404).json({ error: 'Review not found' });
+    }
   } catch (error) {
-    res.status(404).json({ error: 'Review not found' });
+    res.status(500).json({ error: 'Database query failed' });
   }
 });
 
-// Placeholder Comments
+// Comments
 app.post('/comments', async (req, res) => {
   const { text, reviewId, userId } = req.body;
   try {
-    const comment = await prisma.comment.create({
-      data: { text, reviewId, userId },
-    });
-    res.status(201).json(comment);
+    const result = await client.query(
+      'INSERT INTO comments (text, review_id, user_id) VALUES ($1, $2, $3) RETURNING *',
+      [text, reviewId, userId]
+    );
+    res.status(201).json(result.rows[0]);
   } catch (error) {
     res.status(400).json({ error: 'Unable to create comment' });
   }
@@ -105,12 +114,16 @@ app.post('/comments', async (req, res) => {
 app.get('/comments/:id', async (req, res) => {
   const { id } = req.params;
   try {
-    const comment = await prisma.comment.findUnique({
-      where: { id: parseInt(id) },
-    });
-    res.status(200).json(comment);
+    const result = await client.query('SELECT * FROM comments WHERE id = $1', [
+      id,
+    ]);
+    if (result.rows.length > 0) {
+      res.status(200).json(result.rows[0]);
+    } else {
+      res.status(404).json({ error: 'Comment not found' });
+    }
   } catch (error) {
-    res.status(404).json({ error: 'Comment not found' });
+    res.status(500).json({ error: 'Database query failed' });
   }
 });
 

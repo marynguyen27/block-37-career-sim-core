@@ -25,11 +25,9 @@ router.post('/', checkAuth, async (req, res) => {
     );
 
     if (existingReview.rows.length > 0) {
-      return res
-        .status(400)
-        .json({
-          error: 'You have already reviewed this item! One review per item!',
-        });
+      return res.status(400).json({
+        error: 'You have already reviewed this item! One review per item!',
+      });
     }
 
     const result = await client.query(
